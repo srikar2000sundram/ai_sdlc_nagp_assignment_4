@@ -1,0 +1,25 @@
+Mutation report: baseline
+Tool: mutmut mutmut, version 3.8.0
+Scope: src/invoice_app/domain (tests: tests/test_approval_service.py tests/test_approval_policy.py if present)
+
+Total mutants : 36
+Killed        : 23
+Timeout       : 0
+Survived      : 13
+Other         : 0
+Mutation score: 63.9% (killed+timeout / total)
+
+Survivors:
+  invoice_app.domain.approval_service.xǁApprovalServiceǁsubmit__mutmut_4: survived
+  invoice_app.domain.approval_service.xǁApprovalServiceǁsubmit__mutmut_6: survived
+  invoice_app.domain.approval_service.xǁApprovalServiceǁapprove__mutmut_7: survived
+  invoice_app.domain.approval_service.xǁApprovalServiceǁreject__mutmut_4: survived
+  invoice_app.domain.approval_service.xǁApprovalServiceǁreject__mutmut_5: survived
+  invoice_app.domain.approval_service.xǁApprovalServiceǁreject__mutmut_6: survived
+  invoice_app.domain.approval_service.xǁApprovalServiceǁreject__mutmut_7: survived
+  invoice_app.domain.approval_service.xǁApprovalServiceǁreject__mutmut_12: survived
+  invoice_app.domain.approval_service.xǁApprovalServiceǁreject__mutmut_13: survived
+  invoice_app.domain.approval_service.xǁApprovalServiceǁreject__mutmut_15: survived
+  invoice_app.domain.approval_service.xǁApprovalServiceǁ_find__mutmut_4: survived
+  invoice_app.domain.approval_service.xǁApprovalServiceǁ_ensure_pending__mutmut_2: survived
+  invoice_app.domain.invoice.x_utc_now__mutmut_1: survived

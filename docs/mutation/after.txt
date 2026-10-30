@@ -1,0 +1,12 @@
+Mutation report: after
+Tool: mutmut mutmut, version 3.8.0
+Scope: src/invoice_app/domain (tests: tests/test_approval_service.py tests/test_approval_policy.py if present)
+
+Total mutants : 86
+Killed        : 86
+Timeout       : 0
+Survived      : 0
+Other         : 0
+Mutation score: 100.0% (killed+timeout / total)
+
+Survivors:
