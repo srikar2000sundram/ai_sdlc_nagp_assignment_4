@@ -1,3 +1,5 @@
+"""HTTP-level tests: status codes, messages, sign-in, validation and the approval flow through the real routers."""
+
 import threading
 
 import pytest
@@ -10,16 +12,19 @@ PASSWORD = "ChangeMe123!"
 
 @pytest.fixture
 def client() -> TestClient:
+    """A test client for a freshly built app (fresh data, no sessions)."""
     return TestClient(create_app())
 
 
 def sign_in(client: TestClient, username: str) -> dict:
+    """Sign in as a demo user and return the ``Authorization`` header to send."""
     response = client.post("/api/auth/login", json={"username": username, "password": PASSWORD})
     assert response.status_code == 200
     return {"Authorization": f"Bearer {response.json()['token']}"}
 
 
 def get_invoice(client: TestClient, headers: dict, invoice_id: str) -> dict:
+    """Fetch one invoice as JSON."""
     return client.get(f"/api/invoices/{invoice_id}", headers=headers).json()
 
 
@@ -121,6 +126,44 @@ def test_director_approves_between_the_limits_alone(client):
     assert response.json()["requiredApprovals"] == 1
 
 
+def test_two_directors_are_needed_above_the_director_limit(client):
+    director = sign_in(client, "demo.director")
+    other_director = sign_in(client, "demo.director2")
+
+    first = client.post("/api/approvals/INV-2002/approve", headers=director).json()
+    assert first["status"] == "PendingApproval"
+    assert first["requiredApprovals"] == 2
+    assert [approval["username"] for approval in first["approvals"]] == ["demo.director"]
+
+    second = client.post("/api/approvals/INV-2002/approve", headers=other_director).json()
+    assert second["status"] == "Approved"
+    assert second["decidedBy"] == "demo.director2"
+    assert len(second["approvals"]) == 2
+
+
+def test_same_director_twice_gets_403_and_the_first_approval_stays_alone(client):
+    director = sign_in(client, "demo.director")
+    client.post("/api/approvals/INV-2002/approve", headers=director)
+    before = get_invoice(client, director, "INV-2002")
+
+    response = client.post("/api/approvals/INV-2002/approve", headers=director)
+
+    assert response.status_code == 403
+    assert "already approved" in response.json()["error"]
+    assert get_invoice(client, director, "INV-2002") == before
+
+
+def test_manager_as_second_approver_gets_403(client):
+    director = sign_in(client, "demo.director")
+    manager = sign_in(client, "demo.manager")
+    client.post("/api/approvals/INV-2002/approve", headers=director)
+
+    response = client.post("/api/approvals/INV-2002/approve", headers=manager)
+
+    assert response.status_code == 403
+    assert "must be a Director" in response.json()["error"]
+
+
 def test_admin_gets_a_clear_reason_when_trying_to_approve(client):
     admin = sign_in(client, "demo.admin")
 
@@ -151,6 +194,43 @@ def test_admin_refusal_leaves_an_over_limit_invoice_unchanged(client):
     assert client.post("/api/approvals/INV-2002/approve", headers=admin).status_code == 403
     assert get_invoice(client, admin, "INV-2002") == before
     assert before["approvals"] == []
+
+
+def test_manager_can_give_the_first_approval_but_not_a_second_one_as_the_same_user(client):
+    manager = sign_in(client, "demo.manager")
+
+    first = client.post("/api/approvals/INV-2002/approve", headers=manager)
+    assert first.status_code == 200 and first.json()["status"] == "PendingApproval"
+
+    before = get_invoice(client, manager, "INV-2002")
+    again = client.post("/api/approvals/INV-2002/approve", headers=manager)
+
+    assert again.status_code == 403
+    assert "already approved" in again.json()["error"]
+    assert get_invoice(client, manager, "INV-2002") == before
+    assert len(before["approvals"]) == 1
+
+
+def test_simultaneous_double_click_by_one_director_approves_once(client):
+    director = sign_in(client, "demo.director")
+    statuses: list[int] = []
+    gate = threading.Barrier(4)
+
+    def click():
+        """Wait at the barrier, then press Approve: all four clicks land together."""
+        gate.wait()
+        statuses.append(client.post("/api/approvals/INV-2002/approve", headers=director).status_code)
+
+    threads = [threading.Thread(target=click) for _ in range(4)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert sorted(statuses) == [200, 403, 403, 403]
+    invoice = get_invoice(client, director, "INV-2002")
+    assert invoice["status"] == "PendingApproval"
+    assert [approval["username"] for approval in invoice["approvals"]] == ["demo.director"]
 
 
 # --- amounts are validated before anything is stored (PR review findings F2, F3, F4) ---------------------------------
@@ -205,7 +285,10 @@ from invoice_app.domain.approval_policy import ApprovalLimits, standard_policy  
 
 
 class OneUserDirectory:
+    """A user directory that accepts one account, to prove the login endpoint uses whatever directory it is given."""
+
     def authenticate(self, username, password):
+        """Accept only ``only.user`` / ``pw``."""
         return AuthenticatedUser("only.user", "Admin") if (username, password) == ("only.user", "pw") else None
 
 

@@ -19,10 +19,12 @@ NO_APPROVALS: list[ApprovalRecord] = []
 
 
 def approved_by(approver: Approver) -> list[ApprovalRecord]:
+    """A one-entry approvals list as if this approver had already approved."""
     return [ApprovalRecord(approver.username, approver.role, datetime(2026, 1, 1, tzinfo=timezone.utc))]
 
 
 def amount(text: str) -> Decimal:
+    """Build a Decimal from text so tests state amounts exactly (``amount('50000.01')``)."""
     return Decimal(text)
 
 
@@ -69,6 +71,47 @@ def test_required_approvals_steps_up_only_above_the_director_limit(value, expect
 # --- two-approver rule above the director limit --------------------------------------------------
 
 
+def test_first_approver_above_the_director_limit_may_be_a_manager_or_a_director():
+    assert rejection_reason(amount("500000.01"), MANAGER, NO_APPROVALS) is None
+    assert rejection_reason(amount("500000.01"), DIRECTOR, NO_APPROVALS) is None
+
+
+def test_second_approver_must_be_a_different_director():
+    assert rejection_reason(amount("600000"), OTHER_DIRECTOR, approved_by(DIRECTOR)) is None
+    assert rejection_reason(amount("600000"), OTHER_DIRECTOR, approved_by(MANAGER)) is None
+
+
+def test_second_approver_who_is_a_manager_is_refused_with_a_reason():
+    reason = rejection_reason(amount("600000"), OTHER_MANAGER, approved_by(DIRECTOR))
+
+    assert reason == (
+        "The second approver on an invoice above 500,000.00 must be a Director; manager.two is a Manager."
+    )
+
+
+def test_same_user_cannot_be_both_approvers():
+    reason = rejection_reason(amount("600000"), DIRECTOR, approved_by(DIRECTOR))
+
+    assert reason == (
+        "dir.one has already approved this invoice; invoices above 500,000.00 need two different approvers."
+    )
+
+
+@pytest.mark.parametrize("variant", ["DIR.ONE", " dir.one ", "Dir.One", "dir.one\t"])
+def test_same_user_is_recognised_despite_case_and_whitespace(variant):
+    reason = rejection_reason(amount("600000"), Approver(variant, "Director"), approved_by(DIRECTOR))
+
+    assert reason is not None
+    assert "already approved" in reason
+
+
+def test_same_user_check_wins_over_the_role_check():
+    first = Approver("pat", "Manager")
+    reason = rejection_reason(amount("600000"), first, approved_by(first))
+
+    assert "already approved" in reason
+
+
 def test_second_approval_rule_does_not_apply_at_or_below_the_director_limit():
     # A Director who already approved a 500,000 invoice is not blocked by the duplicate rule:
     # such an invoice is already Approved, which the service reports as a state error instead.
@@ -95,6 +138,23 @@ def test_limits_are_the_documented_amounts():
     assert approval_policy.DIRECTOR_LIMIT == Decimal("500000")
 
 
+def test_a_manager_then_a_different_manager_is_refused_above_the_director_limit():
+    reason = rejection_reason(amount("500000.01"), OTHER_MANAGER, approved_by(MANAGER))
+
+    assert reason == (
+        "The second approver on an invoice above 500,000.00 must be a Director; manager.two is a Manager."
+    )
+
+
+@pytest.mark.parametrize("stored", [" Dir.One ", "DIR.ONE", "dir.one\t"])
+def test_same_user_is_recognised_when_the_stored_name_has_odd_case_or_spacing(stored):
+    prior = approved_by(Approver(stored, "Director"))
+
+    reason = rejection_reason(amount("600000"), DIRECTOR, prior)
+
+    assert reason is not None and "already approved" in reason
+
+
 @pytest.mark.parametrize("role", ["director", "Director ", "DIRECTOR", " Manager", "manager"])
 def test_role_names_are_matched_exactly_so_a_mistyped_role_fails_closed(role):
     reason = rejection_reason(amount("1"), Approver("someone", role), NO_APPROVALS)
@@ -110,7 +170,9 @@ from invoice_app.domain.approval_policy import (  # noqa: E402
     ApprovalLimits,
     ApprovalPolicy,
     ApproverRoleRule,
+    DistinctApproversRule,
     ManagerLimitRule,
+    SecondApproverMustBeDirectorRule,
     standard_policy,
 )
 
@@ -121,9 +183,15 @@ class BlockedUserRule:
     """A rule written outside the policy module: adding it needs no change to any existing rule or the policy."""
 
     def __init__(self, blocked_username: str) -> None:
+        """Create the BlockedUserRule.
+
+        Args:
+            blocked_username: The only username this rule refuses.
+        """
         self._blocked_username = blocked_username
 
     def refusal(self, attempt):
+        """Refuse the blocked user, accept everyone else."""
         if attempt.approver.username == self._blocked_username:
             return f"{self._blocked_username} is blocked from approving."
         return None
@@ -160,8 +228,10 @@ def test_limits_are_injected_data_not_global_constants():
     [
         (ApproverRoleRule(), "10", ADMIN, NO_APPROVALS, "Role Admin is not allowed"),
         (ManagerLimitRule(LIMITS), "50000.01", MANAGER, NO_APPROVALS, "needs a Director"),
+        (DistinctApproversRule(LIMITS), "500000.01", DIRECTOR, approved_by(DIRECTOR), "already approved"),
+        (SecondApproverMustBeDirectorRule(LIMITS), "500000.01", MANAGER, approved_by(DIRECTOR), "must be a Director"),
     ],
-    ids=["role", "manager-limit"],
+    ids=["role", "manager-limit", "distinct", "second-director"],
 )
 def test_each_rule_refuses_only_its_own_case_on_its_own(rule, attempt_amount, approver, prior, expected_fragment):
     reason = rule.refusal(ApprovalAttempt(amount(attempt_amount), approver, prior))
@@ -171,7 +241,7 @@ def test_each_rule_refuses_only_its_own_case_on_its_own(rule, attempt_amount, ap
 
 @pytest.mark.parametrize(
     "rule",
-    [ApproverRoleRule(), ManagerLimitRule(LIMITS)],
+    [ApproverRoleRule(), ManagerLimitRule(LIMITS), DistinctApproversRule(LIMITS), SecondApproverMustBeDirectorRule(LIMITS)],
     ids=lambda rule: type(rule).__name__,
 )
 def test_every_rule_has_no_objection_to_a_plain_director_approval_so_any_can_join_any_policy(rule):
@@ -185,21 +255,14 @@ def test_every_rule_has_no_objection_to_a_plain_director_approval_so_any_can_joi
         (ManagerLimitRule(LIMITS), "50000.01", MANAGER, NO_APPROVALS, True),
         (ManagerLimitRule(LIMITS), "500000.00", MANAGER, NO_APPROVALS, True),
         (ManagerLimitRule(LIMITS), "500000.01", MANAGER, NO_APPROVALS, False),
+        (DistinctApproversRule(LIMITS), "500000.00", DIRECTOR, approved_by(DIRECTOR), False),
+        (DistinctApproversRule(LIMITS), "500000.01", DIRECTOR, approved_by(DIRECTOR), True),
+        (SecondApproverMustBeDirectorRule(LIMITS), "500000.00", MANAGER, approved_by(DIRECTOR), False),
+        (SecondApproverMustBeDirectorRule(LIMITS), "500000.01", MANAGER, approved_by(DIRECTOR), True),
+        (SecondApproverMustBeDirectorRule(LIMITS), "500000.01", MANAGER, NO_APPROVALS, False),
     ],
 )
 def test_each_rule_has_its_own_boundary_one_cent_either_side(rule, attempt_amount, approver, prior, refuses):
     reason = rule.refusal(ApprovalAttempt(amount(attempt_amount), approver, prior))
 
     assert (reason is not None) is refuses
-
-
-# --- step 1: above the Director limit nobody can approve alone yet ---------------------------------
-
-
-@pytest.mark.parametrize("approver", [MANAGER, DIRECTOR], ids=lambda approver: approver.role)
-def test_above_the_director_limit_is_refused_for_everyone_until_two_approvers_are_supported(approver):
-    reason = rejection_reason(amount("500000.01"), approver, NO_APPROVALS)
-
-    assert reason is not None
-    assert "need two approvers" in reason
-    assert "500,000.01" in reason
