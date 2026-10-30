@@ -1,0 +1,30 @@
+Mutation report: after-first-pass
+(first mutmut run after the feature and its first 75 tests, BEFORE the survivor-driven tests were added;
+ transcribed from the console output of scripts/run_mutation.sh and scripts/show_survivors.sh)
+Tool: mutmut 3.8.0
+Scope: src/invoice_app/domain (tests: tests/test_approval_service.py tests/test_approval_policy.py)
+
+Total mutants : 85
+Killed        : 69
+Timeout       : 0
+Survived      : 16
+Other         : 0
+Mutation score: 81.2% (killed+timeout / total)
+
+Survivors (mutant id, then the changed line):
+  approval_service.submit__mutmut_4        error message of submit() replaced by None
+  approval_service.submit__mutmut_6        self._repository.update(invoice) -> update(None)   [submit not persisted]
+  approval_service.approve__mutmut_17      ApprovalRecord(..., now) -> ApprovalRecord(..., None) [approved_at never asserted]
+  approval_service.approve__mutmut_26      self._repository.update(invoice) -> update(None)   [approve not persisted]
+  approval_service.reject__mutmut_4        raise ValueError("A reason is required...") -> ValueError(None)
+  approval_service.reject__mutmut_5        message text wrapped in "XX...XX"
+  approval_service.reject__mutmut_6        message lower-cased
+  approval_service.reject__mutmut_7        message upper-cased
+  approval_service.reject__mutmut_15       self._repository.update(invoice) -> update(None)   [reject not persisted]
+  approval_service._find__mutmut_4         InvoiceNotFoundError(message) -> InvoiceNotFoundError(None)
+  approval_service._ensure_pending__mutmut_2  error message replaced by None
+  invoice.utc_now__mutmut_1                datetime.now(timezone.utc) -> datetime.now(None)   [naive timestamps]
+  approval.Approver.__post_init____mutmut_4  ValueError(message) -> ValueError(None)
+  approval.Approver.__post_init____mutmut_5  message wrapped in "XX...XX"
+  approval.Approver.__post_init____mutmut_6  message lower-cased
+  approval.Approver.__post_init____mutmut_7  message upper-cased

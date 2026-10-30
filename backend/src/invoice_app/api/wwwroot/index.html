@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Invoice Approvals</title>
+  <link rel="stylesheet" href="styles.css?v=3">
+</head>
+<body>
+  <!-- Top bar: application title and, once signed in, who is signed in with a Sign out button. -->
+  <header>
+    <div class="brand"><span class="logo" aria-hidden="true"></span><h1>Invoice Approvals</h1></div>
+    <div id="session-bar" hidden>
+      <span id="whoami"></span>
+      <button id="sign-out" type="button">Sign out</button>
+    </div>
+  </header>
+
+  <!-- Everything below is plain HTML. app.js shows and hides the sections. -->
+  <main>
+    <!-- Sign-in view: shown when nobody is signed in. Labels are tied to inputs so tests can find them by label. -->
+    <section id="login-view" aria-labelledby="login-title">
+      <h2 id="login-title">Sign in</h2>
+      <p class="lead">Use your work account to continue.</p>
+      <form id="login-form">
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" required>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <button type="submit">Sign in</button>
+        <p id="login-error" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <!-- Signed-in view: two tabs, Invoices and Approvals. -->
+    <section id="app-view" hidden>
+      <div role="tablist" aria-label="Sections">
+        <button role="tab" id="tab-invoices" aria-selected="true" aria-controls="invoices-panel" type="button">Invoices</button>
+        <button role="tab" id="tab-approvals" aria-selected="false" aria-controls="approvals-panel" type="button">Approvals</button>
+      </div>
+
+      <!-- Invoices tab: create a draft invoice and see all invoices with their status. -->
+      <section id="invoices-panel" role="tabpanel" aria-labelledby="tab-invoices">
+        <h2>Invoices</h2>
+        <p class="lead">Create a draft, submit it, and follow its status.</p>
+
+        <form id="new-invoice-form">
+          <h3>New invoice</h3>
+          <label for="customer">Customer name</label>
+          <input id="customer" name="customer" required>
+          <label for="amount">Amount</label>
+          <input id="amount" name="amount" type="number" min="0.01" step="0.01" required>
+          <button type="submit">Create invoice</button>
+          <p id="create-error" role="alert" hidden></p>
+        </form>
+
+        <table id="invoices-table">
+          <caption>All invoices</caption>
+          <thead>
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Customer</th>
+              <th scope="col">Amount</th>
+              <th scope="col">Status</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <!-- Approvals tab: invoices waiting for a decision. The paragraph with role=alert shows why an approval was refused. -->
+      <section id="approvals-panel" role="tabpanel" aria-labelledby="tab-approvals" hidden>
+        <h2>Pending approvals</h2>
+        <p class="lead">Invoices waiting for a decision. A refusal shows its reason and changes nothing.</p>
+        <p id="pending-empty" hidden>Nothing is waiting for approval.</p>
+        <ul id="pending-list"></ul>
+        <p id="decision-error" role="alert" hidden></p>
+      </section>
+    </section>
+  </main>
+
+  <!-- All behaviour lives in app.js. -->
+  <script src="app.js?v=4"></script>
+</body>
+</html>
