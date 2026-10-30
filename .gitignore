@@ -8,3 +8,25 @@ node_modules/
 .env
 test-results/
 playwright-report/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+mutants/
+.coverage
+htmlcov/
+
+# Local-only agent settings (machine specific)
+.claude/settings.local.json
+docs/video/
+For-Me-Video-Kit/
+For-Me-Submission-Kit/
+
+logs/.state.json
+
+# ArchitectIQ graph cache
+.architectiq/

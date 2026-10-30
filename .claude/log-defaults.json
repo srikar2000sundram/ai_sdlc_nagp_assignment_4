@@ -1,0 +1,5 @@
+{
+  "ai_tool": "Claude Code",
+  "model": "claude-sonnet-5-5",
+  "context": "AI in SDLC assignment: role-based invoice approval limits"
+}
