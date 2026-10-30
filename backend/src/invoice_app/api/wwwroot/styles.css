@@ -1,0 +1,103 @@
+/* Design tokens: change a colour here and it changes everywhere. */
+:root {
+  --navy:#0b1e3f; --navy-2:#13315f; --ink:#16202a; --muted:#5b6876; --line:#e1e7ee; --bg:#eef2f7; --card:#ffffff;
+  --accent:#0f766e; --accent-dark:#0b5d57; --accent-soft:#e3f4f1; --warn:#b4452f; --warn-soft:#fdebe7;
+  --amber:#9a6a00; --amber-soft:#fff4d6; --shadow:0 1px 2px rgba(11,30,63,.06), 0 8px 24px rgba(11,30,63,.08);
+}
+/* Padding and borders are included in an element's width, which keeps layouts predictable. */
+* { box-sizing: border-box; }
+/* The hidden attribute must always win. Without this, rules such as display:flex on an element would keep it
+   visible even though app.js marked it hidden (that is how Sign out used to show before signing in). */
+[hidden] { display:none !important; }
+/* Page: system font, soft blue-grey background. */
+body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink); background:var(--bg); line-height:1.45; }
+/* Top bar: brand on the left, signed-in user on the right. */
+header { display:flex; justify-content:space-between; align-items:center; padding:14px 32px;
+  background:linear-gradient(90deg, var(--navy), var(--navy-2)); color:#fff; box-shadow:0 2px 12px rgba(11,30,63,.25); }
+.brand { display:flex; align-items:center; gap:12px; }
+/* A small mark made of CSS only: a teal rounded square with a white tick. */
+.logo { width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg, #14b8a6, #0f766e); position:relative; flex:none; }
+.logo::after { content:""; position:absolute; left:11px; top:6px; width:9px; height:16px; border:solid #fff; border-width:0 3px 3px 0; transform:rotate(45deg); }
+header h1 { margin:0; font-size:20px; letter-spacing:.2px; }
+#session-bar { display:flex; gap:12px; align-items:center; }
+/* The signed-in user is shown as a pill. */
+#whoami { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.22); padding:6px 14px; border-radius:999px; font-size:14px; }
+#sign-out { background:transparent; border:1px solid rgba(255,255,255,.5); }
+#sign-out:hover { background:rgba(255,255,255,.14); filter:none; }
+/* Centered content column. */
+main { max-width:980px; margin:32px auto; padding:0 24px; }
+h2 { margin:0 0 6px; font-size:22px; color:var(--navy); }
+h3 { margin:0 0 4px; font-size:16px; color:var(--navy); }
+.lead { margin:0 0 18px; color:var(--muted); font-size:14px; }
+/* Panels share one card look. */
+#login-view, #invoices-panel, #approvals-panel { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:28px; box-shadow:var(--shadow); }
+/* The sign-in card is narrow and sits in the middle of the page. */
+#login-view { max-width:420px; margin:56px auto 0; }
+/* Forms stack their fields vertically. */
+form { display:grid; gap:8px; }
+label { font-weight:600; font-size:13px; color:var(--navy); margin-top:4px; }
+input { padding:10px 12px; border:1px solid #cdd6e0; border-radius:10px; font-size:15px; background:#fff; color:var(--ink); }
+input:focus { outline:3px solid rgba(15,118,110,.25); border-color:var(--accent); }
+/* Buttons: teal primary; .secondary is outlined; .danger is red (used for Reject). */
+button { padding:10px 16px; border:1px solid transparent; border-radius:10px; background:var(--accent); color:#fff; font-size:14px; font-weight:600; cursor:pointer; transition:background .15s; }
+button:hover { background:var(--accent-dark); }
+button:focus-visible { outline:3px solid rgba(15,118,110,.35); outline-offset:2px; }
+button.secondary { background:#fff; color:var(--navy); border-color:#cdd6e0; }
+button.secondary:hover { background:#f3f6fa; }
+button.danger { background:#fff; color:var(--warn); border-color:#e8b9ae; }
+button.danger:hover { background:var(--warn-soft); }
+#login-form button[type="submit"] { margin-top:10px; padding:12px 16px; font-size:15px; }
+/* Tabs are real buttons with role=tab; the selected one is filled. Styling by role matches how the tests find them. */
+[role="tablist"] { display:inline-flex; gap:4px; padding:4px; margin-bottom:20px; background:#dde5ee; border-radius:12px; }
+[role="tab"] { background:transparent; color:var(--navy); border:0; padding:8px 20px; }
+[role="tab"]:hover { background:rgba(255,255,255,.55); }
+[role="tab"][aria-selected="true"] { background:#fff; color:var(--navy); box-shadow:0 1px 3px rgba(11,30,63,.18); }
+/* New invoice: a compact card with the fields side by side. */
+#new-invoice-form { grid-template-columns:2fr 1fr auto; align-items:end; gap:4px 12px; margin:18px 0 28px; padding:18px; background:#f6f9fc; border:1px solid var(--line); border-radius:12px; }
+#new-invoice-form h3, #create-error { grid-column:1 / -1; }
+/* Each field is pinned to a cell: labels on row 2, inputs and the button on row 3. */
+#new-invoice-form label[for="customer"] { grid-column:1; grid-row:2; }
+#new-invoice-form #customer { grid-column:1; grid-row:3; }
+#new-invoice-form label[for="amount"] { grid-column:2; grid-row:2; }
+#new-invoice-form #amount { grid-column:2; grid-row:3; }
+#new-invoice-form button { grid-column:3; grid-row:3; }
+#create-error { grid-row:4; }
+/* The invoices table. */
+table { width:100%; border-collapse:separate; border-spacing:0; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+caption { text-align:left; font-weight:700; color:var(--navy); padding:0 0 10px; }
+th, td { text-align:left; padding:12px 14px; font-size:14px; border-bottom:1px solid var(--line); }
+th { background:#f1f5f9; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+tbody tr:last-child td { border-bottom:0; }
+tbody tr:hover { background:#fafcfe; }
+td:nth-child(3), th:nth-child(3) { text-align:right; font-variant-numeric:tabular-nums; }
+/* Status is a coloured pill: amber while pending, teal when approved, red when rejected, grey for drafts. */
+.status { display:inline-block; padding:3px 12px; border-radius:999px; font-size:12px; font-weight:700; background:#eef1f5; color:var(--muted); }
+.status-PendingApproval { background:var(--amber-soft); color:var(--amber); }
+.status-Approved { background:var(--accent-soft); color:var(--accent-dark); }
+.status-Rejected { background:var(--warn-soft); color:var(--warn); }
+/* The reason a rejected invoice was turned down, shown under its status. */
+.decision-note { margin-top:6px; font-size:13px; color:var(--warn); max-width:340px; }
+/* Pending approvals: one card per invoice with the details on the left and the Approve button on the right. */
+#pending-list { list-style:none; padding:0; margin:18px 0 0; display:grid; gap:14px; }
+#pending-list li { display:grid; grid-template-columns:1fr auto; gap:10px 16px; align-items:center; padding:16px 18px; border:1px solid var(--line); border-radius:12px; background:#fcfdff; }
+.info { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 14px; }
+.inv-id { font-weight:700; color:var(--navy); font-size:16px; }
+.inv-customer { color:var(--muted); }
+.inv-amount { font-weight:700; font-variant-numeric:tabular-nums; }
+/* Progress such as "1 of 2 approvals" is a small badge. */
+.progress { background:var(--amber-soft); color:var(--amber); font-size:12px; font-weight:700; padding:3px 10px; border-radius:999px; }
+/* The reason box and Reject button sit on their own row under each pending invoice. */
+.reject-row { grid-column:1 / -1; display:flex; gap:8px; }
+.reject-row input { flex:1; }
+/* Error and refusal messages (for example the reason an approval was refused) are a red notice. */
+[role="alert"] { color:var(--warn); background:var(--warn-soft); border:1px solid #f1c6bd; border-radius:10px; padding:10px 14px; margin:12px 0 0; font-size:14px; font-weight:600; }
+#pending-empty { color:var(--muted); margin:16px 0 0; }
+/* Small screens: stack the new invoice fields and let the table scroll sideways. */
+@media (max-width: 640px) {
+  header { padding:12px 16px; }
+  main { padding:0 12px; }
+  #new-invoice-form { grid-template-columns:1fr; }
+  #new-invoice-form label, #new-invoice-form input, #new-invoice-form button, #create-error { grid-column:1; grid-row:auto !important; }
+  #invoices-panel { overflow-x:auto; }
+  #pending-list li { grid-template-columns:1fr; }
+}
